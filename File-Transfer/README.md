@@ -1,81 +1,98 @@
-# PowerShell SMB Multi-Site File Sync
+# File Deployment — PowerShell
 
-Script PowerShell de démonstration permettant d'automatiser des échanges de fichiers entre un serveur central et plusieurs sites distants via SMB.
+Script PowerShell de déploiement d'un fichier vers plusieurs machines distantes via **SMB**.
+
+Ce projet est une version publique et anonymisée destinée à présenter un exemple d'automatisation d'administration système.
 
 ## Fonctionnalités
 
-- test de disponibilité du port TCP 445 avec plusieurs tentatives ;
-- connexion aux partages SMB distants ;
-- transfert **OUT** : serveur central vers site distant ;
-- synchronisation **COMMUN** : copie des fichiers absents ou plus récents ;
-- transfert **IN** : site distant vers serveur central ;
-- utilisation de `Robocopy` et prise en compte de ses codes retour ;
-- suppression du fichier source uniquement après une copie réussie ;
-- gestion des erreurs par site ;
-- génération d'un rapport CSV en fin d'exécution.
+- import de la liste des machines depuis un fichier CSV ;
+- test de disponibilité de **TCP/445** avec 3 tentatives ;
+- authentification SMB ;
+- contrôle de l'existence du dossier de destination ;
+- copie avec **Robocopy** ;
+- interprétation des codes retour Robocopy ;
+- déconnexion propre du partage ;
+- rapport CSV avec le résultat de chaque machine.
 
-## Sécurité et anonymisation
+## Arborescence
 
-Cette version publique contient uniquement des données fictives. Les noms de serveurs, adresses IP, chemins internes, identifiants, mots de passe, informations d'entreprise et signatures/certificats de la version d'origine ont été retirés.
-
-Les adresses `192.0.2.0/24` utilisées dans l'exemple sont réservées à la documentation et ne correspondent pas à l'infrastructure d'origine.
-
-Les identifiants sont demandés à l'exécution avec `Get-Credential` et ne sont pas enregistrés dans le script.
-
-## Prérequis
-
-- Windows PowerShell 5.1 ou PowerShell compatible avec les commandes Windows utilisées ;
-- accès réseau SMB/TCP 445 aux machines distantes ;
-- `Robocopy` disponible ;
-- compte disposant des droits nécessaires sur les partages ciblés.
-
-## Configuration
-
-Adaptez les valeurs placées au début du script :
-
-```powershell
-$racineLivraison = "C:\FileTransferDemo"
-$cheminRelatifMagasin = "transfert"
-
-$magasins = @{
-    "192.0.2.10" = "site001"
-    "192.0.2.20" = "site002"
-    "192.0.2.30" = "site003"
-}
+```text
+File-Deployment/
+├── Deploy-FileToRemoteHosts.ps1
+├── machines.example.csv
+└── README.md
 ```
 
-Le script demande ensuite les identifiants nécessaires :
+## Sécurité
+
+Aucun mot de passe n'est enregistré dans le script.
+
+Les identifiants sont demandés au lancement :
 
 ```powershell
 $credential = Get-Credential
 ```
 
-## Organisation attendue
+La version publique ne contient aucun nom de serveur, adresse IP, compte, mot de passe ou chemin provenant de l'environnement d'origine.
 
-```text
-C:\FileTransferDemo
-├── commun
-├── site001
-│   ├── in
-│   └── out
-├── site002
-│   ├── in
-│   └── out
-└── rapport_livraison.csv
+Les adresses IP du fichier d'exemple appartiennent au bloc `192.0.2.0/24`, réservé à la documentation.
+
+## Format du fichier CSV
+
+Le séparateur utilisé est `;`.
+
+```csv
+Site;IP
+Site-001;192.0.2.10
+Site-002;192.0.2.20
+Site-003;192.0.2.30
 ```
 
-## Fonctionnement
+## Exemple d'utilisation
 
-**OUT** copie les fichiers `exp*.txt` du dossier `out` du site vers la machine distante. Le fichier source est supprimé uniquement lorsque Robocopy indique une copie réussie.
+```powershell
+.\Deploy-FileToRemoteHosts.ps1 `
+    -FichierSource "C:\FileDeployment\source\example-file.xls" `
+    -FichierCSV "C:\FileDeployment\config\machines.csv" `
+    -CheminRelatif "Users\Public\Documents" `
+    -FichierLog "C:\FileDeployment\logs\deployment-report.csv"
+```
 
-**COMMUN** distribue les fichiers communs à chaque site. Un fichier est copié lorsqu'il n'existe pas sur la destination ou lorsque la version centrale est plus récente.
+Le script demande ensuite le compte disposant des droits nécessaires sur les machines distantes.
 
-**IN** récupère les fichiers `rec*.txt` présents sur le site distant vers son dossier `in` central. Le fichier distant est supprimé uniquement après une copie réussie.
+## Codes Robocopy
+
+Les codes de retour **0 à 7** sont considérés comme des résultats sans erreur bloquante. Un code supérieur à 7 est enregistré comme un échec de copie.
 
 ## Rapport
 
-À la fin du traitement, un rapport CSV contient pour chaque site son statut, le détail du traitement et le nombre de fichiers traités dans chaque flux.
+Le rapport contient :
+
+| Champ | Description |
+| --- | --- |
+| `Site` | Nom logique de la machine/site |
+| `IP` | Adresse de la machine |
+| `Statut` | Résultat du traitement |
+| `Detail` | Information ou erreur rencontrée |
+| `Robocopy` | Code retour de Robocopy |
+
+## Prérequis
+
+- Windows PowerShell 5.1 ou environnement Windows compatible ;
+- `Test-NetConnection` ;
+- `Robocopy` ;
+- accès TCP/445 aux machines cibles ;
+- compte disposant des droits nécessaires sur le partage administratif.
 
 ## Avertissement
 
-Ce projet est fourni comme exemple technique. Testez-le dans un environnement de laboratoire avant toute utilisation en production et adaptez l'authentification, les droits et les chemins à votre propre infrastructure.
+Ce script est fourni comme exemple technique. Il doit être testé et adapté avant toute utilisation dans un environnement de production.
+
+## Auteur
+
+**Clément BRILLAC**
+
+Administrateur Systèmes, Réseaux & Télécoms
+
+© Clément BRILLAC — Tous droits réservés.
